@@ -64,6 +64,15 @@ gboolean edit_exec_key(GKeyFile *key_file, const char *section, FlatpakInfo *inf
   g_ptr_array_add(new_argv, g_strdup_printf("--command=%s", argv[0]));
   g_ptr_array_add(new_argv, g_strdup(info->app));
 
+  g_autofree char *icon = g_key_file_get_string(
+      key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_ICON, NULL);
+  g_autofree char *wm_class = g_key_file_get_string(
+      key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_STARTUP_WM_CLASS, NULL);
+  if (icon != NULL && wm_class != NULL && g_strcmp0(icon, wm_class) == 0 &&
+      g_str_has_prefix(icon, "chrome-")) {
+    g_ptr_array_add(new_argv, g_strdup_printf("--class=%s", icon));
+  }
+
   for (int i = 1; i < argc; i++) {
     g_ptr_array_add(new_argv, g_strdup(argv[i]));
   }
@@ -84,6 +93,17 @@ gboolean edit_exec_key(GKeyFile *key_file, const char *section, FlatpakInfo *inf
 
 gboolean edit_keys(GKeyFile *key_file, const char *section, FlatpakInfo *info,
                    GError **error) {
+  if (g_strcmp0(section, G_KEY_FILE_DESKTOP_GROUP) == 0) {
+    g_autofree char *icon =
+        g_key_file_get_string(key_file, section, G_KEY_FILE_DESKTOP_KEY_ICON, NULL);
+    g_autofree char *wm_class = g_key_file_get_string(
+        key_file, section, G_KEY_FILE_DESKTOP_KEY_STARTUP_WM_CLASS, NULL);
+    if (icon != NULL && wm_class != NULL && g_str_has_prefix(wm_class, "crx_")) {
+      g_key_file_set_string(key_file, section, G_KEY_FILE_DESKTOP_KEY_STARTUP_WM_CLASS,
+                            icon);
+    }
+  }
+
   return edit_exec_key(key_file, section, info, error);
 }
 
